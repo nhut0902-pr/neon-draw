@@ -236,9 +236,9 @@ body {
 <div id="toast">Đã lưu ảnh thành công</div>
 
 <script>
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#ffffff', '#64748b', '#000000'];
+const COLORS = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff','#0a0a0c'];
 let currentColor = COLORS[0];
-let currentSize = 6;
+let currentSize = 5;
 let isEraser = false;
 let strokes = [], sparks = [], shards = [];
 let movingStroke = -1, moveAnchor = null;
@@ -350,7 +350,7 @@ async function startApp() {
 
 function initMediaPipe() {
   mpHands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-  mpHands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.75, minTrackingConfidence: 0.75 });
+  mpHands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
   mpHands.onResults(onResults);
 
   const camera = new Camera(document.getElementById('cam'), {
@@ -389,10 +389,10 @@ function onResults(results) {
     const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
     const isPinching = pinchDist < 0.06;
     
-    // Drawing logic
+    // Drawing logic: Index up, Middle down
     const isDrawing = indexTip.y < landmarks[6].y && middleTip.y > landmarks[10].y;
     
-    // Fist logic (Clear)
+    // Fist logic (Clear): All fingers down
     const isFist = landmarks[8].y > landmarks[6].y && landmarks[12].y > landmarks[10].y && landmarks[16].y > landmarks[14].y;
 
     if (isFist) {
@@ -454,7 +454,7 @@ function handleMove(x, y) {
 function explodeAll() {
   strokes.forEach(s => {
     s.points.forEach(p => {
-      if(Math.random() > 0.8) {
+      if(Math.random() > 0.9) {
         shards.push({
           x: p.x, y: p.y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
           rot: Math.random()*Math.PI*2, vr: (Math.random()-0.5)*0.2,
