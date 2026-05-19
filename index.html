@@ -12,13 +12,13 @@
 /* ═══════ DESIGN SYSTEM ═══════ */
 :root {
   --bg: #0a0a0c;
-  --surface: rgba(20, 20, 23, 0.7);
+  --surface: rgba(20, 20, 23, 0.8);
   --surface-solid: #141417;
   --primary: #3b82f6;
   --primary-glow: rgba(59, 130, 246, 0.5);
   --text: #f8fafc;
   --text-muted: #94a3b8;
-  --border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.1);
   --radius-lg: 20px;
   --radius-md: 12px;
   --font-sans: 'Inter', sans-serif;
@@ -43,7 +43,7 @@ body {
 #landing.hide { opacity: 0; pointer-events: none; transform: scale(1.05); }
 
 .landing-bg { position: absolute; inset: 0; z-index: 0; }
-.orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.2; animation: orbFloat 12s ease-in-out infinite; }
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; animation: orbFloat 12s ease-in-out infinite; }
 .orb-1 { width: 400px; height: 400px; background: var(--primary); top: -100px; left: -100px; }
 .orb-2 { width: 300px; height: 300px; background: #ec4899; bottom: -50px; right: -50px; animation-delay: -4s; }
 @keyframes orbFloat { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px, 20px) scale(1.1); } }
@@ -73,8 +73,8 @@ body {
 
 #cam { 
   position: fixed; inset: 0; width: 100%; height: 100%; 
-  object-fit: cover; transform: scaleX(-1); opacity: 0.3; 
-  filter: contrast(1.1) brightness(0.8);
+  object-fit: cover; transform: scaleX(-1); opacity: 0.5; 
+  filter: contrast(1.2) brightness(1.0);
 }
 #draw-canvas { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
 
@@ -149,6 +149,7 @@ body {
 #loading {
   position: fixed; inset: 0; z-index: 3000; background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.5s;
 }
 .loader {
   width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.1);
@@ -161,6 +162,7 @@ body {
   background: var(--surface-solid); border: 1px solid var(--border);
   padding: 12px 24px; border-radius: 100px; font-size: 14px; font-weight: 500;
   opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -253,11 +255,17 @@ window.onload = () => {
   initUI();
   initLandingParticles();
   
-  setTimeout(() => {
-    document.getElementById('loading').style.opacity = '0';
-    setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
-  }, 1200);
+  // Force hide loading after 3 seconds as a fallback
+  setTimeout(hideLoading, 3000);
 };
+
+function hideLoading() {
+  const loader = document.getElementById('loading');
+  if (loader) {
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 500);
+  }
+}
 
 function resize() {
   W = cvs.width = window.innerWidth;
@@ -304,6 +312,7 @@ function updateStatus(text) {
 // ───────── LANDING PARTICLES ─────────
 function initLandingParticles() {
   const lc = document.getElementById('landing-particles');
+  if (!lc) return;
   const lx = lc.getContext('2d');
   let lW, lH;
   const dots = [];
@@ -340,24 +349,41 @@ async function startApp() {
   document.getElementById('app').classList.add('show');
   
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 1280 }, 
+        height: { ideal: 720 },
+        facingMode: "user"
+      } 
+    });
     document.getElementById('cam').srcObject = stream;
     initMediaPipe();
   } catch (err) {
-    alert("Vui lòng cấp quyền truy cập camera.");
+    console.error("Camera error:", err);
+    alert("Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.");
+    hideLoading();
   }
 }
 
 function initMediaPipe() {
-  mpHands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-  mpHands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
-  mpHands.onResults(onResults);
+  try {
+    mpHands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    mpHands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+    mpHands.onResults(onResults);
 
-  const camera = new Camera(document.getElementById('cam'), {
-    onFrame: async () => { await mpHands.send({ image: document.getElementById('cam') }); },
-    width: 1280, height: 720
-  });
-  camera.start();
+    const camera = new Camera(document.getElementById('cam'), {
+      onFrame: async () => { 
+        try {
+          await mpHands.send({ image: document.getElementById('cam') }); 
+        } catch(e) {}
+      },
+      width: 1280, height: 720
+    });
+    camera.start().then(hideLoading);
+  } catch (e) {
+    console.error("MediaPipe error:", e);
+    hideLoading();
+  }
 }
 
 function onResults(results) {
