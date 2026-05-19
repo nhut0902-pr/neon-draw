@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>NEON DRAW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<style>
+/* ═══════ RESET ═══════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:'DM Sans',sans-serif;color:#f0ece2;touch-action:none}
+
+/* ═══════ DESIGN TOKENS ═══════ */
+:root{
+  --bg:#0d0d0d;--surface:#1a1a1a;--surface2:#252525;
+  --primary:#ff6b35;--secondary:#ffc857;--tertiary:#2ec4b6;
+  --text:#f0ece2;--muted:rgba(240,236,226,.35);
+  --glass:rgba(26,26,26,.6);
+  --radius:18px;
+}
+
+/* ═══════ LANDING PAGE ═══════ */
+#landing{position:fixed;inset:0;z-index:2000;
+  background:var(--bg);display:flex;flex-direction:column;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+#landing.hide{opacity:0;pointer-events:none;transition:opacity .6s ease}
+
+.landing-bg{position:fixed;inset:0;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;animation:orbFloat 12s ease-in-out infinite}
+.orb-1{width:320px;height:320px;background:var(--primary);top:-60px;left:-80px;animation-delay:0s}
+.orb-2{width:280px;height:280px;background:var(--secondary);bottom:-40px;right:-60px;animation-delay:-4s}
+.orb-3{width:200px;height:200px;background:var(--tertiary);top:40%;left:60%;animation-delay:-8s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.1)}66%{transform:translate(-20px,30px) scale(.95)}}
+
+.landing-content{position:relative;z-index:1;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:40px 20px 60px}
+
+/* Hero */
+.hero{text-align:center;margin-top:12vh;animation:fadeUp .8s ease both}
+.hero-badge{display:inline-block;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:3px;text-transform:uppercase;color:var(--secondary);
+  background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.15);
+  border-radius:30px;padding:6px 18px;margin-bottom:20px}
+.hero h1{font-family:'Outfit',sans-serif;font-size:clamp(42px,10vw,72px);font-weight:900;
+  line-height:1.05;letter-spacing:-1px;margin-bottom:16px}
+.hero h1 .grad{background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:15px;color:var(--muted);max-width:380px;line-height:1.6;margin:0 auto 36px}
+
+/* Feature cards */
+.features{display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  width:100%;max-width:420px;margin-bottom:40px;animation:fadeUp .8s ease .2s both}
+.feat-card{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.05);border-radius:var(--radius);padding:18px 16px;
+  transition:transform .2s,border-color .2s}
+.feat-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.1)}
+.feat-icon{font-size:28px;margin-bottom:8px;display:block}
+.feat-card h3{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.feat-card p{font-size:11px;color:var(--muted);line-height:1.4}
+
+/* CTA button */
+.cta-wrap{animation:fadeUp .8s ease .4s both}
+.cta-btn{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;
+  color:#0d0d0d;background:linear-gradient(135deg,var(--primary),#ff8c5a);
+  border:none;border-radius:50px;padding:16px 52px;cursor:pointer;
+  letter-spacing:.5px;transition:all .25s;
+  box-shadow:0 4px 24px rgba(255,107,53,.3)}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(255,107,53,.45)}
+.cta-btn:active{transform:scale(.97)}
+.cta-note{font-size:11px;color:var(--muted);margin-top:14px;text-align:center}
+
+/* Landing particles canvas */
+#landing-particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════ APP LAYER (hidden until started) ═══════ */
+#app{position:fixed;inset:0;z-index:1;display:none}
+#app.show{display:block}
+
+#cam{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.5;transform:scaleX(-1);z-index:0}
+#draw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;display:block;pointer-events:none}
+
+/* ─── Top Bar ─── */
+#top-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;align-items:center;gap:6px;
+  background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.06);border-radius:50px;padding:4px 12px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);user-select:none}
+#logo{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;
+  background:linear-gradient(135deg,var(--primary),var(--secondary));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.5px;white-space:nowrap}
+.tb-sep{width:1px;height:18px;background:rgba(255,255,255,.08);margin:0 2px}
+.tb-btn{font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;
+  color:var(--muted);background:transparent;border:none;border-radius:20px;
+  padding:5px 12px;cursor:pointer;transition:all .2s;white-space:nowrap;user-select:none;outline:none}
+.tb-btn:hover,.tb-btn:active{color:var(--text);background:rgba(255,255,255,.06)}
+.tb-btn.danger:hover,.tb-btn.danger:active{color:#ff6b6b;background:rgba(255,107,107,.08)}
+
+/* ─── Status Bar ─── */
+#status-bar{position:fixed;bottom:0;left:0;width:100%;z-index:100;
+  font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;
+  text-align:center;padding:10px 20px;
+  background:linear-gradient(transparent,rgba(13,13,13,.8));pointer-events:none;user-select:none;
+  letter-spacing:.3px}
+
+/* ─── Help Tips ─── */
+#help-tips{position:fixed;bottom:40px;right:10px;z-index:100;
+  font-family:'DM Sans',sans-serif;font-size:10px;color:rgba(255,255,255,.2);
+  text-align:right;line-height:2;pointer-events:none;user-select:none}
+#help-tips b{color:rgba(255,200,87,.4);font-weight:600}
+
+/* ─── Perm Overlay ─── */
+#perm-overlay{position:fixed;inset:0;z-index:1001;
+  background:rgba(13,13,13,.97);display:none;flex-direction:column;
+  align-items:center;justify-content:center;padding:30px;text-align:center;transition:opacity .5s}
+#perm-overlay.show{display:flex}
+.perm-icon{width:72px;height:72px;border-radius:50%;
+  border:2px solid rgba(255,107,53,.25);background:rgba(255,107,53,.04);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.perm-icon svg{width:32px;height:32px;fill:none;stroke:var(--primary);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+#perm-overlay h2{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:10px;letter-spacing:.5px}
+.perm-desc{font-size:13px;color:var(--muted);line-height:1.7;max-width:300px;margin-bottom:6px}
+.perm-warn{font-size:11px;color:rgba(255,107,53,.5);margin-bottom:24px;line-height:1.5}
+.perm-btn{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;
+  color:#0d0d0d;background:linear-gradient(135deg,var(--primary),#ff8c5a);
+  border:none;border-radius:30px;padding:12px 36px;cursor:pointer;
+  letter-spacing:.5px;transition:all .25s}
+.perm-btn:hover{box-shadow:0 4px 20px rgba(255,107,53,.4);transform:translateY(-1px)}
+.perm-btn:active{transform:scale(.97)}
+.perm-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.perm-denied{display:none;font-size:12px;color:#ff6b6b;margin-top:18px;line-height:1.6;max-width:280px}
+.perm-denied.show{display:block}
+
+/* ─── Loading Overlay ─── */
+#loading-overlay{position:fixed;inset:0;z-index:1002;
+  background:rgba(13,13,13,.96);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
+#loading-overlay.show{opacity:1;pointer-events:auto}
+.spinner{width:36px;height:36px;border:2.5px solid rgba(255,107,53,.12);border-top-color:var(--primary);
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-overlay p{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;
+  color:var(--primary);margin-top:14px;letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LANDING PAGE ══════════════ -->
+<div id="landing">
+  <div class="landing-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <canvas id="landing-particles"></canvas>
+
+  <div class="landing-content">
+    <div class="hero">
+      <div class="hero-badge">Gesture Drawing</div>
+      <h1>V&#7867; b&#7857;ng<br><span class="grad">Ngon Tay</span></h1>
+      <p>M&#7903; camera l&#234;n, d&#249;ng ch&#7845; c&#7911;a b&#7841;n &#273;&#7875; v&#7875; n&#233;t s&#225;ng n&#7895; tr&#234;n kh&#244;ng kh&#237;. Kh&#244;ng c&#7847;n ch&#7841;m m&#224;n h&#236;nh.</p>
+    </div>
+
+    <div class="features">
+      <div class="feat-card">
+        <span class="feat-icon">&#9757;</span>
+        <h3>Ch&#7889; m&#7897;t ng&#243;n</h3>
+        <p>N&#226;ng ng&#243;n tr&#7887;i, thu ng&#243;n gi&#7919;a &#273;&#7875; v&#7875;</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9995;</span>
+        <h3>K&#233;o n&#233;t</h3>
+        <p>Pinch ng&#243;n tr&#7887;i v&#224; c&#224;i &#273;&#7875; di chuy&#7875;n</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9994;</span>
+        <h3>Ph&#225; v&#7905;</h3>
+        <p>N&#259;m tay r&#7891;i x&#242;e ra &#273;&#7875; ph&#225; h&#7911;y to&#224;n b&#7897;</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#127912;</span>
+        <h3>9 m&#224;u neon</h3>
+        <p>Gi&#7919; ng&#243;n tr&#7887;i v&#224;o m&#224;u b&#234;n tr&#225;i &#273;&#7875; ch&#7885;n</p>
+      </div>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="cta-btn" id="btn-start">B&#7852;T &#272;&#7846;U</button>
+      <p class="cta-note">C&#7847;n truy c&#7853;p camera &#183; Ho&#7841;t &#273;&#7897;t t&#7889;t tr&#234;n mobile</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app">
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="draw-canvas"></canvas>
+
+  <div id="top-bar">
+    <div id="logo">&#10022; NEON DRAW</div>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="btn-undo">&#8630; Undo</button>
+    <button class="tb-btn danger" id="btn-clear">&#10005; X&#243;a</button>
+  </div>
+  <div id="status-bar"></div>
+  <div id="help-tips">
+    <b>&#9757; Tr&#7887;i+gi&#7919;a thu</b> : V&#7875;<br>
+    <b>&#9995; Pinch</b> : Di chuy&#7875;n<br>
+    <b>&#9994; N&#259;m &#8594; X&#242;e</b> : Ph&#225; v&#7905;<br>
+    <b>&#9757; Gi&#7919; m&#224;u 480ms</b> : Ch&#7885;n
+  </div>
+</div>
+
+<!-- ══════════════ PERM ══════════════ -->
+<div id="perm-overlay">
+  <div class="perm-icon">
+    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  </div>
+  <h2>Truy c&#7853;p Camera</h2>
+  <p class="perm-desc">C&#7847;n m&#7903; camera tr&#432;&#7899;c m&#7863;t &#273;&#7875; theo d&otilde;i b&agrave;n tay.</p>
+  <p class="perm-warn">&#9888; D&#7919; li&#7879;u x&#7917; l&yacute; n&#7897;i b&#7897;, kh&ocirc;ng g&#7917;i ra ngo&agrave;i.</p>
+  <button class="perm-btn" id="btn-allow-cam">Cho ph&eacute;p Camera</button>
+  <div class="perm-denied" id="perm-denied-msg">B&#7883; t&#7915; ch&#7889;i. Vui l&ograve;ng m&#7903; c&agrave;i &#273;&#7863;t tr&ecirc;nh duy&#7879;t &#8594; cho ph&eacute;p camera &#8594; t&#7843;i l&#7841;i.</div>
+</div>
+
+<!-- ══════════════ LOADING ══════════════ -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="load-text">INITIALIZING</p>
+</div>
+
+<script>
+/* ===================================================================
+   NEON DRAW v4 — Redesigned UI + Landing Page
+   Raw Canvas2D + MediaPipe Hands 0.4 | Mobile-first single file
+   =================================================================== */
+
+// ───────── CONFIG ─────────
+const NEON_COLORS = ['#00f5ff','#ff00ff','#ff6600','#00ff88','#ffff00','#ff1177','#aa44ff','#ff4400','#ffffff'];
+const DWELL_MS = 480, SWATCH_R = 16, SWATCH_EDGE_X = 34, PINCH_THRESH = 0.06;
+
+// ───────── STATE ─────────
+let currentColor = NEON_COLORS[0], currentSz = 4;
+let strokes = [], activeStrokes = {}, sparks = [], shards = [];
+let wasFist = [false,false], movingStroke = -1, moveAnchor = null;
+let swatchDwell = NEON_COLORS.map(()=>({t:0,on:false}));
+let hoveredSwatch = -1, activeSwatch = 0;
+let statusText = '', statusColor = '#ff6b35';
+let W, H, cvs, ctx, bgCanvas, bgCtx, mpHands = null, processing = false;
+
+// ═══════════════════════════════════════════════════════════════════
+//  LANDING PAGE PARTICLES
+// ═══════════════════════════════════════════════════════════════════
+(function initLandingParticles(){
+  const lc = document.getElementById('landing-particles');
+  if(!lc) return;
+  const lx = lc.getContext('2d');
+  let lW, lH;
+  const dots = [];
+  const DOT_COUNT = 50;
+
+  function resizeLP(){
+    lW = lc.width = window.innerWidth;
+    lH = lc.height = window.innerHeight;
+  }
+  resizeLP();
+  window.addEventListener('resize', resizeLP);
+
+  const colors = ['rgba(255,107,53,','rgba(255,200,87,','rgba(46,196,182,'];
+  for(let i=0;i<DOT_COUNT;i++){
+    dots.push({
+      x: Math.random()*lW, y: Math.random()*lH,
+      vx: (Math.random()-.5)*.4, vy: (Math.random()-.5)*.4,
+      r: Math.random()*2+.5,
+      c: colors[~~(Math.random()*3)],
+      a: Math.random()*.35+.1
+    });
+  }
+
+  function drawLP(){
+    lx.clearRect(0,0,lW,lH);
+    for(const d of dots){
+      d.x+=d.vx; d.y+=d.vy;
+      if(d.x<0)d.x=lW; if(d.x>lW)d.x=0;
+      if(d.y<0)d.y=lH; if(d.y>lH)d.y=0;
+      lx.fillStyle = d.c + d.a + ')';
+      lx.beginPath(); lx.arc(d.x,d.y,d.r,0,Math.PI*2); lx.fill();
+    }
+    // connect nearby dots
+    for(let i=0;i<dots.length;i++){
+      for(let j=i+1;j<dots.length;j++){
+        const dx=dots[i].x-dots[j].x, dy=dots[i].y-dots[j].y;
+        const dist=dx*dx+dy*dy;
+        if(dist<18000){
+          lx.strokeStyle='rgba(255,255,255,'+(1-dist/18000)*.04+')';
+          lx.lineWidth=.5;
+          lx.beginPath();lx.moveTo(dots[i].x,dots[i].y);lx.lineTo(dots[j].x,dots[j].y);lx.stroke();
+        }
+      }
+    }
+    if(document.getElementById('landing').style.display!=='none') requestAnimationFrame(drawLP);
+  }
+  requestAnimationFrame(drawLP);
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  APP START (from landing page)
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('btn-start').addEventListener('click', ()=>{
+  const landing = document.getElementById('landing');
+  landing.classList.add('hide');
+  setTimeout(()=>{
+    landing.style.display = 'none';
+    document.getElementById('app').classList.add('show');
+    document.getElementById('perm-overlay').classList.add('show');
+  }, 600);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════════
+function setupCanvas(){
+  cvs = document.getElementById('draw-canvas');
+  W = window.innerWidth; H = window.innerHeight;
+  cvs.width = W; cvs.height = H;
+  ctx = cvs.getContext('2d');
+  bgCanvas = document.createElement('canvas');
+  bgCanvas.width = W; bgCanvas.height = H;
+  bgCtx = bgCanvas.getContext('2d');
+}
+function onResize(){
+  setupCanvas(); redrawBgLayer();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function hexRGBA(hex,a){
+  return 'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a+')';
+}
+function toC(lm,i){return{x:(1-lm[i].x)*W,y:lm[i].y*H}}
+function fingerUp(lm,tip,pip){return lm[tip].y<lm[pip].y}
+function isDrawGesture(lm){return fingerUp(lm,8,6)&&!fingerUp(lm,12,10)}
+function isOpen5(lm){return fingerUp(lm,8,6)&&fingerUp(lm,12,10)&&fingerUp(lm,16,14)&&fingerUp(lm,20,18)}
+function isFist(lm){return !fingerUp(lm,8,6)&&!fingerUp(lm,12,10)&&!fingerUp(lm,16,14)}
+function isPinch(lm){return Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y)<PINCH_THRESH}
+function swatchY(i){return H/(NEON_COLORS.length+1)*(i+1)}
+
+// ═══════════════════════════════════════════════════════════════════
+//  NEON LINE (raw Canvas2D)
+// ═══════════════════════════════════════════════════════════════════
+function neonLine(c,x1,y1,x2,y2,col,sz){
+  c.lineCap='round';
+  c.strokeStyle=hexRGBA(col,.06);c.lineWidth=sz*6;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.strokeStyle=hexRGBA(col,.15);c.lineWidth=sz*3;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.strokeStyle=hexRGBA(col,.5);c.lineWidth=sz*1.5;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.strokeStyle=hexRGBA(col,1);c.lineWidth=Math.max(.5,sz*.35);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SPARK
+// ═══════════════════════════════════════════════════════════════════
+class Spark{
+  constructor(x,y,col){this.x=x;this.y=y;this.col=col;this.vx=(Math.random()-.5)*3;this.vy=-Math.random()*4-1.5;this.life=1;this.decay=Math.random()*.03+.018;this.sz=Math.random()*3+1}
+  update(){this.x+=this.vx;this.y+=this.vy;this.vy+=.07;this.life-=this.decay}
+  show(c){if(this.life<=0)return;const a=this.life;c.fillStyle=hexRGBA(this.col,a*.12);c.beginPath();c.arc(this.x,this.y,this.sz*3,0,Math.PI*2);c.fill();c.fillStyle=hexRGBA(this.col,a*.35);c.beginPath();c.arc(this.x,this.y,this.sz*1.25,0,Math.PI*2);c.fill();c.fillStyle=hexRGBA(this.col,a);c.beginPath();c.arc(this.x,this.y,this.sz*.5,0,Math.PI*2);c.fill()}
+  dead(){return this.life<=0}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SHARD
+// ═══════════════════════════════════════════════════════════════════
+class Shard{
+  constructor(x,y,col){this.x=x;this.y=y;this.col=col;this.vx=(Math.random()-.5)*14;this.vy=(Math.random()-.5)*12-5;this.life=1;this.decay=Math.random()*.012+.007;this.rot=Math.random()*Math.PI*2;this.rv=(Math.random()-.5)*.3;this.sz=Math.random()*14+5;this.sides=~~(Math.random()*3)+3}
+  update(){this.x+=this.vx;this.y+=this.vy;this.vy+=.2;this.vx*=.995;this.rot+=this.rv;this.life-=this.decay}
+  show(c){if(this.life<=0)return;const a=this.life,s=this.sz,n=this.sides;c.save();c.translate(this.x,this.y);c.rotate(this.rot);
+    [{sc:s+10,al:a*.07},{sc:s+4,al:a*.22},{sc:s,al:a*.7,st:hexRGBA(this.col,a*.85)}].forEach(L=>{
+      c.beginPath();for(let i=0;i<n;i++){const t=Math.PI*2/n*i;i===0?c.moveTo(Math.cos(t)*L.sc,Math.sin(t)*L.sc):c.lineTo(Math.cos(t)*L.sc,Math.sin(t)*L.sc)}c.closePath();
+      c.fillStyle=hexRGBA(this.col,L.al);c.fill();if(L.st){c.strokeStyle=L.st;c.lineWidth=1;c.stroke()}
+    });c.restore()}
+  dead(){return this.life<=0}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  STROKE HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function drawStrokeOnCtx(c,s){const p=s.pts;for(let i=1;i<p.length;i++)neonLine(c,p[i-1].x,p[i-1].y,p[i].x,p[i].y,s.col,s.sz)}
+function redrawBgLayer(){bgCtx.clearRect(0,0,W,H);for(const s of strokes)drawStrokeOnCtx(bgCtx,s)}
+function commitStroke(h){const s=activeStrokes[h];if(!s||s.pts.length<2){delete activeStrokes[h];return}strokes.push(s);drawStrokeOnCtx(bgCtx,s);delete activeStrokes[h]}
+function findNearest(px,py){let best=-1,bd=35;for(let i=0;i<strokes.length;i++)for(const p of strokes[i].pts){const d=Math.hypot(p.x-px,p.y-py);if(d<bd){bd=d;best=i}}return best}
+function triggerShatter(){for(const s of strokes){const step=Math.max(1,Math.floor(s.pts.length/40));for(let i=0;i<s.pts.length;i+=step)for(let j=0;j<3;j++)shards.push(new Shard(s.pts[i].x,s.pts[i].y,s.col))}strokes=[];bgCtx.clearRect(0,0,W,H);activeStrokes={}}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SWATCHES
+// ═══════════════════════════════════════════════════════════════════
+function drawSwatches(c){
+  for(let i=0;i<NEON_COLORS.length;i++){
+    const sy=swatchY(i),col=NEON_COLORS[i],hov=hoveredSwatch===i,act=activeSwatch===i,dw=swatchDwell[i];
+    if(hov||act){c.fillStyle=hexRGBA(col,.07);c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*2.5,0,Math.PI*2);c.fill();c.fillStyle=hexRGBA(col,.14);c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*1.6,0,Math.PI*2);c.fill()}
+    if(dw.on){const prog=Math.min((performance.now()-dw.t)/DWELL_MS,1);c.strokeStyle=hexRGBA(col,.4);c.lineWidth=4;c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*1.3,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);c.stroke();c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=1.5;c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*1.3,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);c.stroke()}
+    c.strokeStyle=act?'rgba(255,255,255,.8)':hexRGBA(col,.5);c.lineWidth=act?2:1;c.fillStyle=hexRGBA(col,.18);c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R,0,Math.PI*2);c.fill();c.stroke();c.fillStyle=col;c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*.55,0,Math.PI*2);c.fill();
+    if(act){c.strokeStyle='rgba(255,255,255,.5)';c.lineWidth=1.5;c.beginPath();c.arc(SWATCH_EDGE_X,sy,SWATCH_R*1.35,0,Math.PI*2);c.stroke()}
+  }
+}
+function updateSwatches(fp){hoveredSwatch=-1;if(!fp){swatchDwell.forEach(d=>d.on=false);return}for(let i=0;i<NEON_COLORS.length;i++){const sy=swatchY(i),d=Math.hypot(fp.x-SWATCH_EDGE_X,fp.y-sy);if(d<SWATCH_R*1.6){hoveredSwatch=i;if(!swatchDwell[i].on)swatchDwell[i].t=performance.now();swatchDwell[i].on=true;if(performance.now()-swatchDwell[i].t>=DWELL_MS){activeSwatch=i;currentColor=NEON_COLORS[i];swatchDwell[i].on=false}}else swatchDwell[i].on=false}}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RENDER LOOP
+// ═══════════════════════════════════════════════════════════════════
+function renderLoop(){
+  if(!ctx)return;
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(bgCanvas,0,0);
+  for(const k in activeStrokes){const s=activeStrokes[k];if(s&&s.pts.length>=2)drawStrokeOnCtx(ctx,s)}
+  for(let i=sparks.length-1;i>=0;i--){sparks[i].update();sparks[i].show(ctx);if(sparks[i].dead())sparks.splice(i,1)}
+  for(let i=shards.length-1;i>=0;i--){shards[i].update();shards[i].show(ctx);if(shards[i].dead())shards.splice(i,1)}
+  drawSwatches(ctx);
+  const sb=document.getElementById('status-bar');if(sb){sb.style.color=statusColor;sb.textContent=statusText}
+  requestAnimationFrame(renderLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MEDIAPIPE RESULTS
+// ═══════════════════════════════════════════════════════════════════
+function onHandResults(results){
+  processing=false;
+  const raw=results.multiHandLandmarks||[];
+  let swatchPt=null;const handLabel=['',''];
+  for(let h=0;h<2;h++){
+    if(h>=raw.length){if(activeStrokes[h])commitStroke(h);if(h===0)movingStroke=-1;continue}
+    const lm=raw[h];
+    const drawing=isDrawGesture(lm),pinch=isPinch(lm),fist=isFist(lm),open5=isOpen5(lm);
+    if(wasFist[h]&&open5&&!fist){triggerShatter();wasFist[h]=false;handLabel[h]='shatter';continue}
+    wasFist[h]=!!fist;
+    if(pinch){handLabel[h]='pinch';const pc=toC(lm,8);if(movingStroke<0){movingStroke=findNearest(pc.x,pc.y);if(movingStroke>=0){const s0=strokes[movingStroke].pts[0];moveAnchor={x:pc.x-s0.x,y:pc.y-s0.y}}}if(movingStroke>=0){const s=strokes[movingStroke],s0=s.pts[0],ox=pc.x-moveAnchor.x-s0.x,oy=pc.y-moveAnchor.y-s0.y;for(const p of s.pts){p.x+=ox;p.y+=oy}moveAnchor.x=pc.x-s.pts[0].x;moveAnchor.y=pc.y-s.pts[0].y;redrawBgLayer()}if(activeStrokes[h])commitStroke(h);continue}else if(h===0){movingStroke=-1;moveAnchor=null}
+    if(drawing){handLabel[h]='draw';const pt=toC(lm,8);if(!activeStrokes[h])activeStrokes[h]={pts:[pt],col:currentColor,sz:currentSz};else{activeStrokes[h].pts.push(pt);if(Math.random()<.55)sparks.push(new Spark(pt.x+(Math.random()-.5)*8,pt.y+(Math.random()-.5)*8,currentColor))}if(h===0&&pt.x<70)swatchPt=pt;continue}
+    handLabel[h]='idle';if(activeStrokes[h])commitStroke(h);if(h===0){const pt=toC(lm,8);if(pt.x<70)swatchPt=pt}
+  }
+  updateSwatches(swatchPt);
+  if(handLabel.includes('fist')){statusText=' \u270A N\u1EAFM TAY \u2014 X\u00D2E RA \u0110\u1EC2 PH\u00C1 V\u1EDC!';statusColor='#ff6b35'}
+  else if(handLabel.includes('pinch')){statusText=' \u270C DI CHUY\u1EC2N N\u00C9T';statusColor='#ffc857'}
+  else if(handLabel.includes('draw')){statusText=' \u270F \u0110ANG V\u1EBE';statusColor=currentColor}
+  else if(hoveredSwatch>=0){statusText=' \uD83C\uDFA8 CH\u1ECCN M\u00C0U\u2026';statusColor=NEON_COLORS[hoveredSwatch]}
+  else{statusText=' \u2726 S\u1EB6N S\u00C0NG \u2014 N\u00C2NG NG\u00D3N TR\u1ED4 \u0110\u1EC2 V\u1EBE';statusColor='#ff6b35'}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CAMERA + MEDIAPIPE INIT
+// ═══════════════════════════════════════════════════════════════════
+async function initCamera(){
+  const video=document.getElementById('cam'),loadOvl=document.getElementById('loading-overlay'),
+    permOvl=document.getElementById('perm-overlay'),deniedMsg=document.getElementById('perm-denied-msg'),
+    allowBtn=document.getElementById('btn-allow-cam'),loadText=document.getElementById('load-text');
+  permOvl.classList.remove('show');loadOvl.classList.add('show');loadText.textContent='STARTING CAMERA\u2026';
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});
+    video.srcObject=stream;
+    await new Promise((res,rej)=>{video.onloadedmetadata=()=>{video.play().then(res).catch(rej)};setTimeout(()=>rej(new Error('Video load timeout')),8000)});
+  }catch(e){
+    console.error('Camera error:',e);loadOvl.classList.remove('show');permOvl.classList.add('show');
+    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){deniedMsg.classList.add('show');allowBtn.disabled=true;allowBtn.textContent='B\u1ECB T\u1EE6 CH\u1ED0I'}
+    else{deniedMsg.textContent='L\u1ED7i: '+(e.message||'');deniedMsg.classList.add('show')}return;
+  }
+  loadText.textContent='LOADING HAND MODEL\u2026';
+  try{
+    if(typeof Hands==='undefined'){throw new Error('MediaPipe Hands not loaded — check internet')}
+    mpHands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
+    mpHands.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:.75,minTrackingConfidence:.7});
+    mpHands.onResults(onHandResults);await mpHands.send({image:video});
+  }catch(e){
+    console.error('MediaPipe error:',e);loadText.textContent='MODEL LOAD ERROR';
+    setTimeout(()=>{loadOvl.classList.remove('show');permOvl.classList.add('show');deniedMsg.textContent='L\u1ED7i t\u1EA3i model MediaPipe. Ki\u1EC3m tra k\u1EBFt n\u1ED1i internet v\u00E0 t\u1EA3i l\u1EA1i trang.';deniedMsg.classList.add('show')},1500);return;
+  }
+  processing=false;
+  function sendLoop(){if(video.readyState>=2&&!processing){processing=true;mpHands.send({image:video}).catch(()=>{processing=false})}requestAnimationFrame(sendLoop)}
+  requestAnimationFrame(sendLoop);
+  setTimeout(()=>loadOvl.classList.remove('show'),400);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  UI BUTTONS
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('btn-undo').addEventListener('click',()=>{if(strokes.length>0){strokes.pop();redrawBgLayer()}});
+document.getElementById('btn-clear').addEventListener('click',()=>{strokes=[];bgCtx.clearRect(0,0,W,H);activeStrokes={};sparks=[];shards=[]});
+document.getElementById('btn-allow-cam').addEventListener('click',initCamera);
+
+// ═══════════════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  setupCanvas();
+  window.addEventListener('resize',onResize);
+  requestAnimationFrame(renderLoop);
+});
+</script>
+</body>
+</html>
