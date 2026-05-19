@@ -3,235 +3,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>AI NEON DRAW — Future of Creativity</title>
+<title>Neon Draw Pro — Professional Gesture Canvas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 <style>
-/* ═══════ RESET & BASE ═══════ */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#050505;font-family:'DM Sans',sans-serif;color:#ffffff;touch-action:none}
-
+/* ═══════ DESIGN SYSTEM ═══════ */
 :root {
-  --primary: #00f2ff;
-  --secondary: #7000ff;
-  --accent: #ff00c8;
-  --bg: #050505;
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --radius: 24px;
-  --font-main: 'Outfit', sans-serif;
+  --bg: #0a0a0c;
+  --surface: rgba(20, 20, 23, 0.7);
+  --surface-solid: #141417;
+  --primary: #3b82f6;
+  --primary-glow: rgba(59, 130, 246, 0.5);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
 }
 
-/* ═══════ LANDING PAGE (AI STYLE) ═══════ */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { 
+  width: 100%; height: 100%; overflow: hidden; 
+  background: var(--bg); color: var(--text); 
+  font-family: var(--font-sans); touch-action: none;
+}
+
+/* ═══════ LANDING PAGE ═══════ */
 #landing {
   position: fixed; inset: 0; z-index: 2000;
-  background: var(--bg); display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background: radial-gradient(circle at 50% -20%, #1e293b 0%, var(--bg) 70%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#landing.hide { opacity: 0; pointer-events: none; }
+#landing.hide { opacity: 0; pointer-events: none; transform: scale(1.05); }
 
-.ai-grid {
-  position: absolute; inset: 0;
-  background-image: linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
-  background-size: 50px 50px;
-  mask-image: radial-gradient(circle at center, black, transparent 80%);
-  z-index: 0;
-}
-
-.hero {
-  position: relative; z-index: 1; text-align: center; max-width: 600px; padding: 20px;
-}
-.hero-badge {
-  display: inline-block; padding: 8px 20px; border-radius: 100px;
-  background: rgba(0, 242, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.2);
-  color: var(--primary); font-family: var(--font-main); font-size: 12px;
-  font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px;
-}
-.hero h1 {
-  font-family: var(--font-main); font-size: clamp(48px, 12vw, 84px); font-weight: 900;
-  line-height: 0.9; letter-spacing: -2px; margin-bottom: 20px;
-}
-.hero h1 span {
-  background: linear-gradient(to right, var(--primary), var(--secondary));
+.hero { text-align: center; max-width: 640px; padding: 0 24px; }
+.hero h1 { 
+  font-family: var(--font-display); font-size: clamp(40px, 8vw, 72px); 
+  font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 24px;
+  background: linear-gradient(to bottom, #fff 30%, #94a3b8);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
-.hero p {
-  font-size: 18px; color: rgba(255,255,255,0.5); line-height: 1.6; margin-bottom: 40px;
-}
+.hero p { font-size: 18px; color: var(--text-muted); line-height: 1.6; margin-bottom: 48px; }
 
-.start-btn {
-  position: relative; padding: 20px 60px; border-radius: 100px; border: none;
-  background: #ffffff; color: #000000; font-family: var(--font-main);
-  font-size: 18px; font-weight: 800; cursor: pointer; overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s;
+.btn-primary {
+  background: var(--text); color: var(--bg);
+  padding: 16px 40px; border-radius: 100px; border: none;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: all 0.3s; display: inline-flex; align-items: center; gap: 12px;
 }
-.start-btn:hover {
-  transform: scale(1.05); box-shadow: 0 0 40px rgba(255,255,255,0.3);
-}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,0.3); }
 
 /* ═══════ APP INTERFACE ═══════ */
 #app { position: fixed; inset: 0; z-index: 1; display: none; }
 #app.show { display: block; }
 
-#cam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0.4; filter: grayscale(0.5) contrast(1.2); }
+#cam { 
+  position: fixed; inset: 0; width: 100%; height: 100%; 
+  object-fit: cover; transform: scaleX(-1); opacity: 0.3; 
+  filter: contrast(1.1) brightness(0.8);
+}
 #draw-canvas { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
 
-/* AI HUD */
-.hud-container {
+/* HUD Layout */
+.hud {
   position: fixed; inset: 0; z-index: 100; pointer-events: none;
   padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
 }
 
-.hud-top { display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
-.hud-bottom { display: flex; justify-content: space-between; align-items: flex-end; pointer-events: auto; }
-
-.glass-panel {
-  background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 12px;
+.glass {
+  background: var(--surface); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border); pointer-events: auto;
 }
 
-.logo {
-  font-family: var(--font-main); font-weight: 900; font-size: 20px;
-  letter-spacing: -1px; display: flex; align-items: center; gap: 10px;
+/* Top Bar */
+.top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.brand { 
+  display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-radius: 100px;
+  font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: 0.02em;
 }
-.logo-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 15px var(--primary); }
+.brand svg { color: var(--primary); }
 
-.tool-group { display: flex; gap: 8px; }
-.tool-btn {
-  width: 48px; height: 48px; border-radius: 16px; border: 1px solid transparent;
-  background: rgba(255,255,255,0.05); color: #fff; cursor: pointer;
+.action-group { display: flex; gap: 8px; padding: 6px; border-radius: 100px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text); cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all 0.2s;
 }
-.tool-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-.tool-btn.active { background: var(--primary); color: #000; }
+.icon-btn:hover { background: rgba(255,255,255,0.1); }
+.icon-btn svg { width: 20px; height: 20px; stroke-width: 2; }
+.icon-btn.danger:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-.color-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.color-swatch {
-  width: 32px; height: 32px; border-radius: 10px; cursor: pointer;
-  border: 2px solid transparent; transition: transform 0.2s;
+/* Bottom Controls */
+.bottom-controls { display: flex; justify-content: center; align-items: flex-end; gap: 24px; width: 100%; }
+
+.tool-dock { 
+  display: flex; gap: 12px; padding: 8px; border-radius: 24px; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
-.color-swatch.active { border-color: #fff; transform: scale(1.1); }
+.tool-item {
+  width: 52px; height: 52px; border-radius: 18px; border: none;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+}
+.tool-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.tool-item.active { background: var(--primary); color: white; box-shadow: 0 8px 16px var(--primary-glow); }
 
-.status-box { font-family: var(--font-main); font-size: 12px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+.color-palette {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 12px; border-radius: 24px;
+}
+.color-dot {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.2s; position: relative;
+}
+.color-dot.active { border-color: white; transform: scale(1.15); }
+.color-dot.active::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Status & Feedback */
+.status-pill {
+  position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
+  padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
+  background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
 
 /* ═══════ OVERLAYS ═══════ */
-#loading-overlay {
-  position: fixed; inset: 0; z-index: 3000; background: #000;
+#loading {
+  position: fixed; inset: 0; z-index: 3000; background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  transition: opacity 0.5s;
 }
-.ai-loader {
-  width: 60px; height: 60px; border: 2px solid var(--primary); border-radius: 50%;
-  border-top-color: transparent; animation: spin 1s linear infinite;
+.loader {
+  width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.1);
+  border-radius: 50%; border-top-color: var(--primary); animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-#perm-overlay {
-  position: fixed; inset: 0; z-index: 2500; background: rgba(0,0,0,0.9);
-  display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px;
+#toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface-solid); border: 1px solid var(--border);
+  padding: 12px 24px; border-radius: 100px; font-size: 14px; font-weight: 500;
+  opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-#perm-overlay.show { display: flex; }
-
-/* ═══════ NOTIFICATIONS ═══════ */
-.toast {
-  position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
-  background: var(--primary); color: #000; padding: 10px 24px; border-radius: 100px;
-  font-weight: 800; font-size: 14px; z-index: 1000; opacity: 0; transition: all 0.3s;
-}
-.toast.show { opacity: 1; top: 120px; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 </style>
 </head>
 <body>
 
-<div id="loading-overlay">
-  <div class="ai-loader"></div>
-  <p style="margin-top: 20px; letter-spacing: 4px; font-size: 12px; color: var(--primary)">SYSTEM INITIALIZING</p>
+<div id="loading">
+  <div class="loader"></div>
+  <p style="margin-top: 24px; font-size: 14px; color: var(--text-muted); letter-spacing: 0.1em">INITIALIZING ENGINE</p>
 </div>
 
 <div id="landing">
-  <div class="ai-grid"></div>
   <div class="hero">
-    <div class="hero-badge">AI-Powered Engine</div>
-    <h1>AI NEON <span>DRAW</span></h1>
-    <p>Trải nghiệm vẽ trong không gian với trí tuệ nhân tạo. Điều khiển bằng cử chỉ, sáng tạo không giới hạn.</p>
-    <button class="start-btn" id="btn-start">KHÁM PHÁ NGAY</button>
+    <h1>Sáng tạo không<br>cần chạm.</h1>
+    <p>Neon Draw Pro sử dụng AI để biến cử chỉ tay của bạn thành những nét vẽ nghệ thuật trong không gian thực tế ảo.</p>
+    <button class="btn-primary" id="btn-start">
+      Bắt đầu ngay
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+    </button>
   </div>
-</div>
-
-<div id="perm-overlay">
-  <h2 style="font-family: var(--font-main); font-size: 32px; margin-bottom: 16px">Yêu cầu quyền truy cập</h2>
-  <p style="color: rgba(255,255,255,0.6); margin-bottom: 32px">Chúng tôi cần sử dụng Camera để nhận diện cử chỉ tay của bạn.</p>
-  <button class="start-btn" id="btn-allow-cam">CHO PHÉP CAMERA</button>
 </div>
 
 <div id="app">
   <video id="cam" autoplay playsinline muted></video>
   <canvas id="draw-canvas"></canvas>
 
-  <div class="hud-container">
-    <div class="hud-top">
-      <div class="glass-panel logo">
-        <div class="logo-dot"></div>
-        AI NEON DRAW
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span id="status-text">Hệ thống sẵn sàng</span>
+  </div>
+
+  <div class="hud">
+    <div class="top-bar">
+      <div class="glass brand">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        NEON DRAW PRO
       </div>
-      <div class="glass-panel tool-group">
-        <button class="tool-btn" id="btn-undo" title="Hoàn tác">↩</button>
-        <button class="tool-btn" id="btn-clear" title="Xóa hết">⎚</button>
-        <button class="tool-btn" id="btn-save" title="Lưu ảnh">💾</button>
+      <div class="glass action-group">
+        <button class="icon-btn" id="btn-undo" title="Hoàn tác">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6-6m-6 6 6 6"/></svg>
+        </button>
+        <button class="icon-btn danger" id="btn-clear" title="Xóa tất cả">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-save" title="Lưu tác phẩm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        </button>
       </div>
     </div>
 
-    <div class="hud-bottom">
-      <div class="glass-panel color-grid" id="color-picker">
-        <!-- Colors generated by JS -->
+    <div class="bottom-controls">
+      <div class="glass color-palette" id="color-picker">
+        <!-- Colors via JS -->
       </div>
-      <div class="glass-panel" style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
-        <div class="status-box" id="status-text">Hệ thống sẵn sàng</div>
-        <div class="tool-group">
-          <button class="tool-btn active" id="mode-draw" title="Chế độ vẽ">✎</button>
-          <button class="tool-btn" id="mode-erase" title="Chế độ tẩy">⌫</button>
-        </div>
+      <div class="glass tool-dock">
+        <button class="tool-item active" id="mode-draw" title="Chế độ vẽ">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5"/></svg>
+        </button>
+        <button class="tool-item" id="mode-erase" title="Chế độ tẩy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"/><path d="M17 17L7 7"/></svg>
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast">Đã lưu ảnh vào thư viện!</div>
+<div id="toast">Đã lưu ảnh thành công</div>
 
 <script>
-const NEON_COLORS = ['#00f2ff', '#7000ff', '#ff00c8', '#00ff88', '#ffff00', '#ff4d00', '#ffffff', '#4d4d4d', '#ff0000'];
-let currentColor = NEON_COLORS[0];
-let currentSize = 5;
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#ffffff', '#64748b', '#000000'];
+let currentColor = COLORS[0];
+let currentSize = 6;
 let isEraser = false;
 let strokes = [];
 let currentStroke = null;
 let W, H, cvs, ctx;
 let mpHands = null;
 
-// ───────── INITIALIZATION ─────────
 window.onload = () => {
   cvs = document.getElementById('draw-canvas');
   ctx = cvs.getContext('2d');
   resize();
-  initColorPicker();
+  initUI();
   
-  document.getElementById('btn-start').onclick = startApp;
-  document.getElementById('btn-allow-cam').onclick = requestCamera;
-  document.getElementById('btn-undo').onclick = undo;
-  document.getElementById('btn-clear').onclick = clearCanvas;
-  document.getElementById('btn-save').onclick = saveImage;
-  document.getElementById('mode-draw').onclick = () => setMode(false);
-  document.getElementById('mode-erase').onclick = () => setMode(true);
-
   setTimeout(() => {
-    document.getElementById('loading-overlay').style.opacity = '0';
-    setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-  }, 1500);
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+  }, 1200);
 };
 
 function resize() {
@@ -240,44 +249,50 @@ function resize() {
 }
 window.onresize = resize;
 
-function initColorPicker() {
-  const container = document.getElementById('color-picker');
-  NEON_COLORS.forEach((color, i) => {
-    const swatch = document.createElement('div');
-    swatch.className = `color-swatch ${i === 0 ? 'active' : ''}`;
-    swatch.style.backgroundColor = color;
-    swatch.onclick = () => {
-      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
-      swatch.classList.add('active');
-      currentColor = color;
+function initUI() {
+  const picker = document.getElementById('color-picker');
+  COLORS.forEach((c, i) => {
+    const dot = document.createElement('div');
+    dot.className = `color-dot ${i === 0 ? 'active' : ''}`;
+    dot.style.backgroundColor = c;
+    dot.onclick = () => {
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      currentColor = c;
       setMode(false);
     };
-    container.appendChild(swatch);
+    picker.appendChild(dot);
   });
+
+  document.getElementById('btn-start').onclick = startApp;
+  document.getElementById('btn-undo').onclick = undo;
+  document.getElementById('btn-clear').onclick = clearCanvas;
+  document.getElementById('btn-save').onclick = saveImage;
+  document.getElementById('mode-draw').onclick = () => setMode(false);
+  document.getElementById('mode-erase').onclick = () => setMode(true);
 }
 
 function setMode(erase) {
   isEraser = erase;
   document.getElementById('mode-draw').classList.toggle('active', !erase);
   document.getElementById('mode-erase').classList.toggle('active', erase);
-  document.getElementById('status-text').innerText = erase ? "Chế độ tẩy" : "Chế độ vẽ";
+  updateStatus(erase ? "Chế độ tẩy" : "Chế độ vẽ");
 }
 
-// ───────── CORE LOGIC ─────────
+function updateStatus(text) {
+  document.getElementById('status-text').innerText = text;
+}
+
 async function startApp() {
   document.getElementById('landing').classList.add('hide');
   document.getElementById('app').classList.add('show');
-  requestCamera();
-}
-
-async function requestCamera() {
+  
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
     document.getElementById('cam').srcObject = stream;
-    document.getElementById('perm-overlay').classList.remove('show');
     initMediaPipe();
   } catch (err) {
-    document.getElementById('perm-overlay').classList.add('show');
+    alert("Vui lòng cấp quyền truy cập camera để sử dụng ứng dụng.");
   }
 }
 
@@ -289,8 +304,8 @@ function initMediaPipe() {
   mpHands.setOptions({
     maxNumHands: 1,
     modelComplexity: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7
+    minDetectionConfidence: 0.75,
+    minTrackingConfidence: 0.75
   });
 
   mpHands.onResults(onResults);
@@ -299,8 +314,7 @@ function initMediaPipe() {
     onFrame: async () => {
       await mpHands.send({ image: document.getElementById('cam') });
     },
-    width: 1280,
-    height: 720
+    width: 1280, height: 720
   });
   camera.start();
 }
@@ -311,8 +325,6 @@ function onResults(results) {
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     const landmarks = results.multiHandLandmarks[0];
-    
-    // Ngón trỏ (Index finger tip)
     const indexTip = landmarks[8];
     const thumbTip = landmarks[4];
     const middleTip = landmarks[12];
@@ -320,78 +332,71 @@ function onResults(results) {
     const x = (1 - indexTip.x) * W;
     const y = indexTip.y * H;
 
-    // Tính khoảng cách ngón cái và ngón trỏ để chỉnh độ dày
-    const distThumbIndex = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-    currentSize = Math.max(2, Math.min(20, distThumbIndex * 100));
+    // Chỉnh độ dày bằng khoảng cách ngón cái - trỏ
+    const dist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+    currentSize = Math.max(3, Math.min(25, dist * 120));
 
-    // Cử chỉ vẽ: Ngón trỏ đưa lên, ngón giữa gập xuống
+    // Vẽ khi ngón trỏ cao hơn khớp, ngón giữa gập
     const isDrawing = indexTip.y < landmarks[6].y && middleTip.y > landmarks[10].y;
     
-    // Cử chỉ xóa (Nắm tay): Tất cả các ngón gập
-    const isFist = landmarks[8].y > landmarks[6].y && 
-                   landmarks[12].y > landmarks[10].y && 
-                   landmarks[16].y > landmarks[14].y;
+    // Xóa sạch khi nắm tay
+    const isFist = landmarks[8].y > landmarks[6].y && landmarks[12].y > landmarks[10].y && landmarks[16].y > landmarks[14].y;
 
     if (isFist) {
       clearCanvas();
-      document.getElementById('status-text').innerText = "Đã xóa sạch";
+      updateStatus("Đã xóa sạch");
     } else if (isDrawing) {
       if (!currentStroke) {
-        currentStroke = { color: isEraser ? '#050505' : currentColor, size: currentSize, points: [], isEraser };
+        currentStroke = { color: isEraser ? '#0a0a0c' : currentColor, size: currentSize, points: [], isEraser };
         strokes.push(currentStroke);
       }
       currentStroke.points.push({ x, y });
-      document.getElementById('status-text').innerText = isEraser ? "Đang tẩy..." : "Đang vẽ...";
+      updateStatus(isEraser ? "Đang tẩy..." : "Đang vẽ...");
     } else {
       currentStroke = null;
-      document.getElementById('status-text').innerText = "Sẵn sàng";
+      updateStatus("Sẵn sàng");
     }
 
-    // Vẽ con trỏ AI
     drawCursor(x, y, isDrawing);
   }
 }
 
 function drawCursor(x, y, active) {
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(x, y, active ? 10 : 15, 0, Math.PI * 2);
-  ctx.strokeStyle = active ? varColor('--primary') : 'rgba(255,255,255,0.5)';
+  ctx.arc(x, y, active ? 8 : 12, 0, Math.PI * 2);
+  ctx.strokeStyle = active ? '#fff' : 'rgba(255,255,255,0.3)';
   ctx.lineWidth = 2;
   ctx.stroke();
   
   if (active) {
-    ctx.fillStyle = currentColor;
+    ctx.fillStyle = isEraser ? '#fff' : currentColor;
     ctx.fill();
+    // Glow effect
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = isEraser ? '#fff' : currentColor;
+    ctx.stroke();
   }
-  
-  // Hiệu ứng vòng tròn AI
-  ctx.beginPath();
-  ctx.arc(x, y, 25, 0, Math.PI * 2);
-  ctx.setLineDash([5, 5]);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function drawStrokes() {
-  strokes.forEach(stroke => {
-    if (stroke.points.length < 2) return;
+  strokes.forEach(s => {
+    if (s.points.length < 2) return;
     ctx.beginPath();
-    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-    for (let i = 1; i < stroke.points.length; i++) {
-      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    ctx.moveTo(s.points[0].x, s.points[0].y);
+    for (let i = 1; i < s.points.length; i++) {
+      ctx.lineTo(s.points[i].x, s.points[i].y);
     }
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = stroke.size;
-    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = s.size;
+    ctx.strokeStyle = s.color;
     
-    if (!stroke.isEraser) {
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = stroke.color;
-    } else {
-      ctx.shadowBlur = 0;
+    if (!s.isEraser) {
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = s.color;
     }
-    
     ctx.stroke();
     ctx.shadowBlur = 0;
   });
@@ -408,10 +413,10 @@ function clearCanvas() {
 
 function saveImage() {
   const link = document.createElement('a');
-  link.download = `ai-neon-draw-${Date.now()}.png`;
+  link.download = `neon-draw-pro-${Date.now()}.png`;
   link.href = cvs.toDataURL();
   link.click();
-  showToast("Đã lưu ảnh vào thư viện!");
+  showToast("Đã lưu ảnh vào máy");
 }
 
 function showToast(msg) {
@@ -420,11 +425,6 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
-
-function varColor(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
 </script>
 </body>
 </html>
